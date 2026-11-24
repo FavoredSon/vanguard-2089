@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>VANGUARD 2089 — Blackout Protocol</title>
+  <style>/*__INLINE_CSS__*/</style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ==================== MAIN COMMAND TITLE SCREEN ==================== -->
+  <div id="screen-menu">
+    <div class="menu-left">
+      <div>
+        <div class="brand-kicker">TASK FORCE VANGUARD // NEO-KOWLOON SECTOR 04</div>
+        <h1 class="brand-title">VANGUARD <span>2089</span></h1>
+        <div class="brand-sub">Cyberpunk × Modern Warfare Tactical FPS. WebGL2 PBR lighting, HDR bloom, 6 custom cyber-ballistic weapons, 3 playable Operators, Campaign Mission 01 &amp; Endless Siege.</div>
+
+        <div class="menu-actions">
+          <button id="btn-campaign" class="deploy-btn chamfer">
+            <div class="deploy-kicker">CAMPAIGN // MISSION 01</div>
+            <div class="deploy-title">OPERATION: BLACKOUT PROTOCOL</div>
+            <div class="deploy-desc">Breach Checkpoint Alpha, secure Orbital Heavy Arms, sabotage Uplink Cores, and eliminate ARES-IX Titan.</div>
+            <div id="menu-camp-status" class="deploy-meta">STATUS: DEPLOYMENT READY</div>
+          </button>
+
+          <button id="btn-endless" class="deploy-btn amber chamfer">
+            <div class="deploy-kicker">ENDLESS MODE // THE FOUNDRY</div>
+            <div class="deploy-title">PROTOCOL: INFINITE SIEGE</div>
+            <div class="deploy-desc">Multi-tier cyber-warfare arena. Escalating waves, HVT Boss drops, and live Requisition Armory upgrades.</div>
+            <div id="menu-best-wave" class="deploy-meta">NO RECORD YET</div>
+          </button>
+
+          <div class="codex-row">
+            <button id="btn-armory" class="codex-btn">3D WEAPONS (6)</button>
+            <button id="btn-operators" class="codex-btn">OPERATORS (3)</button>
+            <button id="btn-hostiles" class="codex-btn">HOSTILES (7)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="op-selector-wrap">
+        <div class="section-lbl">SELECT ACTIVE DEPLOYMENT OPERATOR</div>
+        <div id="menu-op-list" class="op-list"></div>
+      </div>
+    </div>
+
+    <div class="menu-right">
+      <div class="controls-card chamfer">
+        <div class="section-lbl" style="color:var(--cyan);margin-bottom:4px">TACTICAL CONTROLS</div>
+        <div class="ctrl-grid">
+          <kbd>W A S D</kbd><span>Move / Strafe</span>
+          <kbd>LMB / RMB</kbd><span>Fire / Precision ADS</span>
+          <kbd>1 - 6 / SCROLL</kbd><span>Switch Weapon</span>
+          <kbd>R</kbd><span>Tactical Reload</span>
+          <kbd>SHIFT + C</kbd><span>Sprint / Cyber-Slide</span>
+          <kbd>Q</kbd><span>Overclock (Time-Slow)</span>
+          <kbd>E</kbd><span>Optic Cyber-Scan</span>
+          <kbd>G</kbd><span>EMP Smart Grenade</span>
+          <kbd>F</kbd><span>Interact / Cyber-Blade</span>
+          <kbd>B</kbd><span>Endless Requisition Shop</span>
+          <kbd>ESC / P</kbd><span>Pause &amp; Settings</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 3D ARMORY & CODEX SHOWCASE ==================== -->
+  <div id="screen-showcase" class="hidden">
+    <div class="sc-top">
+      <div class="sc-tabs">
+        <button id="sc-tab-weapons" class="sc-tab active">WEAPONS (6)</button>
+        <button id="sc-tab-operators" class="sc-tab">OPERATORS (3)</button>
+        <button id="sc-tab-enemies" class="sc-tab">HOSTILES (7)</button>
+      </div>
+      <button id="sc-back" class="sc-back">← RETURN TO COMMAND</button>
+    </div>
+
+    <div class="sc-body">
+      <div id="sc-list" class="sc-list"></div>
+      <div class="sc-dossier chamfer">
+        <h2 id="sc-title" class="sc-title">M41-K "SPECTRE"</h2>
+        <div id="sc-cat" class="sc-cat">SMART TACTICAL ASSAULT RIFLE</div>
+        <p id="sc-lore" class="sc-lore"></p>
+        <div id="sc-stats"></div>
+        <button id="sc-action-btn" class="sc-action-btn">TEST FIRE ACOUSTICS &amp; MUZZLE</button>
+      </div>
+    </div>
+
+    <div class="sc-hint">DRAG VIEWPORT TO ORBIT 360° // SCROLL WHEEL TO ZOOM</div>
+  </div>
+
+  <!-- ==================== IN-GAME TACTICAL HUD ==================== -->
+  <div id="hud-layer" class="hidden">
+    <div id="world-markers"></div>
+
+    <div id="sniper-scope" class="hidden">
+      <div class="scope-h"></div>
+      <div class="scope-v"></div>
+      <div class="scope-ring"></div>
+      <div class="scope-hud">RA-77 BALLISTIC OPTIC<br/>ZOOM: 4.0× RAIL<br/>WINDAGE: 0.0 MIL</div>
+    </div>
+
+    <div class="hud-top-left">
+      <canvas id="radar-canvas" width="136" height="136"></canvas>
+      <div class="obj-panel">
+        <div id="hud-mode-badge" class="obj-badge">OP: BLACKOUT PROTOCOL</div>
+        <div id="hud-obj-title" class="obj-title">BREACH CHECKPOINT ALPHA</div>
+        <div id="hud-obj-sub" class="obj-sub"></div>
+        <div class="obj-stats">
+          <span class="pts">SCORE: <b id="hud-score">0</b></span>
+          <span class="cred" id="hud-credits">₵250</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="boss-bar" class="hidden">
+      <div class="boss-head">
+        <span class="boss-name">ARES-IX "TITAN" — DIRECTOR KAELEN</span>
+        <span id="boss-phase" class="boss-phase">PHASE I</span>
+      </div>
+      <div class="boss-track"><div id="boss-hp-fill" class="boss-hp" style="width:100%"></div></div>
+      <div class="boss-sh-track"><div id="boss-sh-fill" class="boss-sh" style="width:100%"></div></div>
+    </div>
+
+    <div id="kill-feed"></div>
+
+    <div id="comms-box" class="hidden">
+      <img id="comms-img" alt="Comms" />
+      <div>
+        <div id="comms-call" class="comms-call">OVERWATCH // ORACLE</div>
+        <div id="comms-text" class="comms-text"></div>
+      </div>
+    </div>
+
+    <div id="crosshair">
+      <div class="ch-line ch-t"></div>
+      <div class="ch-line ch-b"></div>
+      <div class="ch-line ch-l"></div>
+      <div class="ch-line ch-r"></div>
+      <div class="ch-dot"></div>
+    </div>
+    <div id="hitmarker"></div>
+    <div id="dmg-arc"></div>
+    <div id="interact-prompt" class="hidden"></div>
+
+    <div class="hud-bot-left">
+      <div class="abilities-row">
+        <div id="ab-overclock" class="ab-box">
+          <div class="ab-key">[Q]</div>
+          <div class="ab-name">OVERCLOCK</div>
+          <div class="ab-state">READY</div>
+        </div>
+        <div id="ab-scan" class="ab-box">
+          <div class="ab-key">[E]</div>
+          <div class="ab-name">OPTIC SCAN</div>
+          <div class="ab-state">READY</div>
+        </div>
+        <div id="ab-grenade" class="ab-box">
+          <div class="ab-key">[G]</div>
+          <div class="ab-name">EMP FRAG</div>
+          <div class="ab-state">×3</div>
+        </div>
+      </div>
+
+      <div class="vitals-card chamfer">
+        <img id="hud-op-img" alt="Operator" />
+        <div class="vitals-bars">
+          <div id="hud-op-call" style="font-family:var(--font-mono);font-size:10px;color:var(--cyan);letter-spacing:0.16em;margin-bottom:5px">GHOST-01</div>
+          <div class="vital-row">
+            <span style="color:var(--cyan);width:24px">SHD</span>
+            <div class="vital-track"><div id="hud-arm-fill" class="vital-arm" style="width:100%"></div></div>
+            <span id="hud-arm-num" class="vital-num" style="color:var(--cyan)">100</span>
+          </div>
+          <div class="vital-row">
+            <span style="color:var(--text);width:24px">HP</span>
+            <div class="vital-track"><div id="hud-hp-fill" class="vital-hp" style="width:100%"></div></div>
+            <span id="hud-hp-num" class="vital-num">100</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hud-bot-right">
+      <div class="ammo-card chamfer">
+        <div id="hud-wep-name" class="wep-name">M41-K "SPECTRE"</div>
+        <div id="hud-wep-cat" class="wep-cat">FULL-AUTO</div>
+        <div class="ammo-nums">
+          <span id="hud-ammo-mag">32</span>
+          <span id="hud-ammo-res">/ 224</span>
+        </div>
+        <div id="hud-reload-wrap" class="hidden"><div id="hud-reload-fill"></div></div>
+      </div>
+      <div id="hud-slots"></div>
+      <div id="hud-shop-hint" class="hidden">[B] OPEN REQUISITION ARMORY</div>
+    </div>
+
+    <!-- ==================== MOBILE DUAL-THUMB TOUCH CONTROLS ==================== -->
+    <div id="touch-controls" class="hidden">
+      <div id="touch-move-zone">
+        <div id="joy-base" class="hidden">
+          <div id="joy-sprint-tag">SPRINT</div>
+          <div id="joy-nub"></div>
+        </div>
+        <div class="touch-zone-hint">MOVE</div>
+      </div>
+      <div id="touch-look-zone"></div>
+
+      <div class="touch-top-btns">
+        <button id="tbtn-shop" class="t-mini-btn amber hidden">SHOP</button>
+        <button id="tbtn-pause" class="t-mini-btn">II</button>
+      </div>
+
+      <div class="touch-action-cluster">
+        <button id="tbtn-ads" class="t-btn t-ads">ADS</button>
+        <button id="tbtn-reload" class="t-btn t-rel">RLD</button>
+        <button id="tbtn-jump" class="t-btn t-jmp">JMP</button>
+        <button id="tbtn-crouch" class="t-btn t-sld">SLD</button>
+        <button id="tbtn-act" class="t-btn t-act">KNIFE</button>
+        <button id="tbtn-fire" class="t-btn t-fire">FIRE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pointer Lock Re-engage Banner -->
+  <div id="lock-banner" class="hidden">
+    <div class="lock-pill chamfer">CLICK VIEWPORT TO ENGAGE MOUSE AIM // [ESC] PAUSE</div>
+  </div>
+
+  <!-- ==================== PAUSE & SETTINGS MODAL ==================== -->
+  <div id="screen-pause" class="modal-backdrop hidden">
+    <div class="modal-card chamfer">
+      <div class="modal-kicker">TACTICAL PAUSE // SYSTEM CONFIG</div>
+      <h2 class="modal-title">MISSION PAUSED</h2>
+      <div class="opt-row">
+        <span>Aim Sensitivity</span>
+        <div><input id="opt-sens" type="range" min="0.8" max="5.0" step="0.2" value="2.2" /> <span id="opt-sens-val">2.2</span></div>
+      </div>
+      <div class="opt-row">
+        <span>Field of View (FOV)</span>
+        <div><input id="opt-fov" type="range" min="65" max="96" step="1" value="76" /> <span id="opt-fov-val">76°</span></div>
+      </div>
+      <div class="opt-row">
+        <span>Master Volume</span>
+        <div><input id="opt-vol" type="range" min="0" max="100" step="5" value="72" /> <span id="opt-vol-val">72%</span></div>
+      </div>
+      <div class="opt-row">
+        <span>Graphics Preset</span>
+        <select id="opt-qual">
+          <option value="high" selected>ULTRA (HDR Bloom + Shadows)</option>
+          <option value="med">MEDIUM (Mobile Balanced)</option>
+          <option value="low">PERFORMANCE (Max FPS)</option>
+        </select>
+      </div>
+      <div class="opt-row">
+        <span>Touch Controls</span>
+        <select id="opt-touch">
+          <option value="auto" selected>AUTO DETECT</option>
+          <option value="on">ALWAYS ON</option>
+          <option value="off">OFF (DESKTOP)</option>
+        </select>
+      </div>
+      <div class="modal-btns">
+        <button id="btn-resume" class="m-btn primary">RESUME</button>
+        <button id="btn-restart" class="m-btn">RESTART</button>
+        <button id="btn-quit" class="m-btn">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ENDLESS REQUISITION SHOP ==================== -->
+  <div id="screen-shop" class="modal-backdrop hidden">
+    <div class="modal-card wide chamfer">
+      <div class="shop-header">
+        <div>
+          <div class="modal-kicker">THE FOUNDRY // ORBITAL DROP TERMINAL</div>
+          <h2 class="modal-title" style="margin:4px 0 0">REQUISITION ARMORY</h2>
+        </div>
+        <div id="shop-credits" class="shop-cred">₵250</div>
+      </div>
+      <div class="section-lbl">WEAPONS &amp; AMMO REFILLS</div>
+      <div id="shop-weapons" class="shop-grid"></div>
+      <div class="section-lbl">CYBERWARE &amp; FIELD LOGISTICS</div>
+      <div id="shop-upgrades" class="shop-grid"></div>
+      <div class="modal-btns">
+        <button id="shop-close" class="m-btn primary">RETURN TO COMBAT [B / ESC]</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== AFTER-ACTION DEBRIEF ==================== -->
+  <div id="screen-debrief" class="modal-backdrop hidden">
+    <div class="modal-card wide chamfer">
+      <div class="debrief-top">
+        <div>
+          <div id="debrief-kicker" class="modal-kicker">CAMPAIGN MISSION 01</div>
+          <h2 id="debrief-title" class="debrief-title win">MISSION ACCOMPLISHED</h2>
+        </div>
+        <div id="debrief-rank" class="rank-badge">S</div>
+      </div>
+      <div class="debrief-grid">
+        <div class="debrief-stat"><span>TOTAL SCORE</span><b id="debrief-score">0</b></div>
+        <div class="debrief-stat"><span>CONFIRMED KILLS</span><b id="debrief-kills">0</b></div>
+        <div class="debrief-stat"><span>HEADSHOTS</span><b id="debrief-heads">0</b></div>
+        <div class="debrief-stat"><span>ACCURACY</span><b id="debrief-acc">0%</b></div>
+        <div class="debrief-stat"><span>DURATION</span><b id="debrief-time">0:00</b></div>
+        <div class="debrief-stat"><span>STATUS / WAVE</span><b id="debrief-wave">-</b></div>
+      </div>
+      <div class="modal-btns">
+        <button id="debrief-retry" class="m-btn primary">REDEPLOY</button>
+        <button id="debrief-endless" class="m-btn amber">PLAY ENDLESS SIEGE</button>
+        <button id="debrief-menu" class="m-btn">MAIN COMMAND</button>
+      </div>
+    </div>
+  </div>
+
+  <script>/*__INLINE_JS__*/</script>
+</body>
+</html>
